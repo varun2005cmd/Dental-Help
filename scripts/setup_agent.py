@@ -116,7 +116,7 @@ def register_webhook(client: httpx.Client) -> tuple[str, str]:
     resp = client.get(f"{ELEVEN_BASE}/v1/workspace/webhooks")
     if resp.status_code == 200:
         for wh in resp.json().get("webhooks", []):
-            if wh.get("url") == webhook_url:
+            if wh.get("webhook_url") == webhook_url:
                 print(f"  ↳ Existing webhook found: {wh['webhook_id']}")
                 # We can't retrieve the secret again — the user must have it saved
                 existing_secret = os.environ.get("WEBHOOK_SECRET", "")
@@ -127,8 +127,11 @@ def register_webhook(client: httpx.Client) -> tuple[str, str]:
                 return wh["webhook_id"], existing_secret
 
     payload = {
-        "url": webhook_url,
-        "name": "DentalHelp Post-Call Webhook",
+        "settings": {
+            "auth_type": "hmac",
+            "name": "DentalHelp Post-Call Webhook",
+            "webhook_url": webhook_url,
+        }
     }
     resp = client.post(f"{ELEVEN_BASE}/v1/workspace/webhooks", json=payload)
     if resp.status_code not in (200, 201):
@@ -165,7 +168,7 @@ def create_agent(client: httpx.Client, webhook_id: str) -> str:
                 "silence_end_call_timeout": 30,
             },
             "tts": {
-                "model_id": "eleven_turbo_v2_5",
+                "model_id": "eleven_turbo_v2",
                 "voice_id": "21m00Tcm4TlvDq8ikWAM",  # Rachel — a stable pre-built ElevenLabs voice
                 "stability": 0.5,
                 "similarity_boost": 0.8,
@@ -197,7 +200,6 @@ def create_agent(client: httpx.Client, webhook_id: str) -> str:
                                 "url": f"{BACKEND_URL}/api/slots",
                                 "method": "GET",
                                 "query_params_schema": {
-                                    "type": "object",
                                     "properties": {
                                         "date": {
                                             "type": "string",
@@ -207,7 +209,6 @@ def create_agent(client: httpx.Client, webhook_id: str) -> str:
                                             ),
                                         }
                                     },
-                                    "required": [],
                                 },
                             },
                         },
@@ -225,7 +226,7 @@ def create_agent(client: httpx.Client, webhook_id: str) -> str:
                             "api_schema": {
                                 "url": f"{BACKEND_URL}/api/book-appointment",
                                 "method": "POST",
-                                "body_schema": {
+                                "request_body_schema": {
                                     "type": "object",
                                     "properties": {
                                         "patient_name": {
@@ -280,6 +281,8 @@ def create_agent(client: httpx.Client, webhook_id: str) -> str:
             "evaluation": {
                 "criteria": [
                     {
+                        "id": "appointment_booked_criteria",
+                        "type": "prompt",
                         "name": "appointment_booked",
                         "conversation_goal_prompt": (
                             "Did the agent successfully collect the patient's full name, "
@@ -377,7 +380,9 @@ def main() -> None:
         me = client.get(f"{ELEVEN_BASE}/v1/user")
         if me.status_code != 200:
             _bail(f"ElevenLabs API key is invalid or expired [{me.status_code}]: {me.text}")
-        print(f"\n  ✓ Authenticated as: {me.json().get('xi_api_key', {}).get('name', 'N/A')}")
+        user_json = me.json() or {}
+        key_info = user_json.get('xi_api_key') or {}
+        print(f"\n  ✓ Authenticated as: {key_info.get('name', 'N/A')}")
 
         webhook_id, _ = register_webhook(client)
         agent_id = create_agent(client, webhook_id)
@@ -389,8 +394,8 @@ def main() -> None:
     print(f"\n  Agent ID     : {agent_id}")
     print(f"  Webhook ID   : {webhook_id}")
     print(f"\n  Next steps:")
-    print(f"  1. Make sure AGENT_ID and WEBHOOK_SECRET are set in Railway env vars")
-    print(f"  2. Redeploy the Railway service (or it will pick them up automatically)")
+    print(f"  1. Add AGENT_ID and WEBHOOK_SECRET to your Render service env vars")
+    print(f"  2. Render will auto-redeploy once env vars are saved")
     print(f"  3. Open {BACKEND_URL} in your browser to test the frontend")
     print(f"  4. Click the chat widget and speak to the agent!")
     print()
