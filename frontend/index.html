@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dental Help</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="config.js"></script>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <span class="nav-logo"> Dental Help</span>
+      <div class="nav-pill" id="connection-pill">
+        <span class="nav-dot" id="status-dot"></span>
+        <span id="status-text">Connecting</span>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <p class="hero-label">AI Receptionist</p>
+      <h1 class="hero-title">Talk to Aria</h1>
+      <p class="hero-sub">Ask about services, check availability, or book an appointment — just speak naturally.</p>
+      <div class="widget-wrap">
+        <div id="widget-loading" class="widget-loading">
+          <div class="spinner"></div>
+          <span>Loading agent</span>
+        </div>
+        <div id="elevenlabs-widget-mount"></div>
+      </div>
+      <div id="booking-banner" class="booking-banner hidden">
+        <span id="booking-icon"></span>
+        <span id="booking-text"></span>
+      </div>
+    </section>
+
+    <section id="transcript-section" class="section hidden">
+      <div class="section-head">
+        <span class="section-title">Live Transcript</span>
+        <span class="live-badge"> LIVE</span>
+      </div>
+      <div id="live-transcript" class="transcript-box"></div>
+    </section>
+
+    <div class="data-row">
+      <section class="section data-card">
+        <div class="section-head">
+          <span class="section-title">Conversations</span>
+          <div class="head-right">
+            <span class="count-badge" id="conv-count">0</span>
+            <button class="icon-btn" onclick="window.app && window.app.refreshData()" title="Refresh">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>ID</th><th>Transcript</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody id="conv-body"><tr><td colspan="4" class="empty">No conversations yet</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section data-card">
+        <div class="section-head">
+          <span class="section-title">Appointments</span>
+          <span class="count-badge" id="appt-count">0</span>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Patient</th><th>Service</th><th>Time</th><th>Status</th></tr></thead>
+            <tbody id="appt-body"><tr><td colspan="4" class="empty">No appointments yet</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <p class="refresh-note" id="refresh-note"></p>
+  </main>
+
+  <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
+  <script src="app.js" type="module"></script>
+</body>
+</html>
