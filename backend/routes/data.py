@@ -36,6 +36,14 @@ async def sync_conversations():
     Pull the most recent conversations from ElevenLabs API and upsert into MongoDB.
     Runs after every call (20s + 60s) to ensure transcripts and audio flags are stored.
     """
+    try:
+        return await _do_sync()
+    except Exception as exc:
+        import traceback
+        return JSONResponse({"synced": 0, "skipped": 0, "error": str(exc), "trace": traceback.format_exc()[-800:]}, status_code=200)
+
+
+async def _do_sync():
     api_key = os.environ.get("ELEVENLABS_API_KEY", "")
     agent_id = os.environ.get("AGENT_ID", "")
     if not api_key:
