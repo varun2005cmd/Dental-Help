@@ -132,15 +132,44 @@ async def book_appointment(payload: BookAppointmentRequest):
             },
         )
 
-    # Validate service
-    matched_service = payload.service_type
-    if payload.service_type not in SERVICE_NAMES:
-        # Fuzzy-match: accept if any service name contains the input (case-insensitive)
-        lower_input = payload.service_type.lower()
+    # Validate service — first try the explicit alias map, then substring fuzzy-match
+    SERVICE_ALIASES = {
+        "cleaning":        "Teeth Cleaning",
+        "teeth cleaning":  "Teeth Cleaning",
+        "whitening":       "Teeth Whitening",
+        "teeth whitening": "Teeth Whitening",
+        "checkup":         "Routine Checkup",
+        "check-up":        "Routine Checkup",
+        "check up":        "Routine Checkup",
+        "routine":         "Routine Checkup",
+        "filling":         "Cavity Filling",
+        "cavity":          "Cavity Filling",
+        "cavity filling":  "Cavity Filling",
+        "root canal":      "Root Canal Treatment",
+        "root canal treatment": "Root Canal Treatment",
+        "x-ray":           "Dental X-Ray",
+        "xray":            "Dental X-Ray",
+        "x ray":           "Dental X-Ray",
+        "extraction":      "Tooth Extraction",
+        "tooth extraction":"Tooth Extraction",
+        "pull":            "Tooth Extraction",
+        "braces":          "Braces Consultation",
+        "consultation":    "Braces Consultation",
+        "braces consultation": "Braces Consultation",
+        "emergency":       "Emergency Dental Care",
+        "emergency dental": "Emergency Dental Care",
+        "emergency care":  "Emergency Dental Care",
+    }
+    lower_input = payload.service_type.strip().lower()
+    matched_service = SERVICE_ALIASES.get(lower_input, payload.service_type)
+    if matched_service not in SERVICE_NAMES:
+        # Substring fuzzy-match as fallback
         for svc in SERVICE_NAMES:
             if lower_input in svc.lower() or svc.lower() in lower_input:
                 matched_service = svc
                 break
+    if matched_service not in SERVICE_NAMES:
+        matched_service = "Routine Checkup"  # safe default if everything fails
 
     # Auto-assign a doctor (round-robin based on appointment count)
     total_appts = await appointments_col.count_documents({})
