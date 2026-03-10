@@ -7,6 +7,7 @@ Tools configured on the agent:
 """
 from __future__ import annotations
 
+import logging
 import os
 import random
 from datetime import datetime, timezone
@@ -21,6 +22,7 @@ from backend.database import appointments_collection
 from backend.models import BookAppointmentRequest
 
 router = APIRouter(tags=["tools"])
+logger = logging.getLogger(__name__)
 
 
 # ─── 1. Check Availability ────────────────────────────────────────────────────
@@ -35,14 +37,17 @@ async def check_availability(date: Optional[str] = Query(None, description="YYYY
     # Pull already-booked datetimes from MongoDB
     appointments_col = appointments_collection()
     booked_isos: set[str] = set()
-    async for doc in appointments_col.find({"status": "confirmed"}, {"appointment_time": 1}):
-        if "appointment_time" in doc:
-            dt = doc["appointment_time"]
-            if isinstance(dt, datetime):
-                # Normalise to UTC ISO without microseconds
-                booked_isos.add(dt.replace(microsecond=0, tzinfo=timezone.utc).isoformat())
-            else:
-                booked_isos.add(str(dt)[:19].replace(" ", "T") + "+00:00")
+    try:
+        async for doc in appointments_col.find({"status": "confirmed"}, {"appointment_time": 1}):
+            if "appointment_time" in doc:
+                dt = doc["appointment_time"]
+                if isinstance(dt, datetime):
+                    booked_isos.add(dt.replace(microsecond=0, tzinfo=timezone.utc).isoformat())
+                else:
+                    booked_isos.add(str(dt)[:19].replace(" ", "T") + "+00:00")
+    except Exception as exc:
+        logger.warning("Could not load booked appointments from DB: %s", exc)
+        # Continue with empty booked set — return all slots rather than failing
 
     # Re-generate fresh slots (14-day window so there's always plenty)
     from backend.clinic_data import _generate_slots

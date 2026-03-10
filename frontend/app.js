@@ -89,15 +89,19 @@ class App {
 
   onCallEnd() {
     this.setStatus("online","Call ended — saving");
-    // First refresh: pick up the appointment (booked during call, saved immediately)
-    setTimeout(() => { this.refreshData(); }, 4000);
-    // Second refresh: pick up the transcript (webhook fires ~30-60s after call ends)
-    setTimeout(() => { this.refreshData(); this.setStatus("online","Connected"); }, 40000);
-    // Third refresh: belt-and-suspenders at 90s for slow processing
-    setTimeout(() => { this.refreshData(); }, 90000);
+    // 4s: appointment should already be in DB (booked live during call)
+    setTimeout(() => { this.refreshData(false); }, 4000);
+    // 20s: sync from ElevenLabs API in case webhook was slow/missed
+    setTimeout(() => { this.refreshData(true); this.setStatus("online","Connected"); }, 20000);
+    // 60s: final sync for slow ElevenLabs processing
+    setTimeout(() => { this.refreshData(true); }, 60000);
   }
 
-  async refreshData() {
+  async refreshData(sync = false) {
+    if (sync) {
+      // Pull any missing transcripts directly from ElevenLabs API
+      try { await fetch("/api/sync", { method: "POST" }); } catch {}
+    }
     try {
       const [cr, ar] = await Promise.all([fetch("/api/conversations"), fetch("/api/appointments")]);
       if (cr.ok) this.renderConvs((await cr.json()).conversations ?? []);

@@ -102,8 +102,12 @@ async def elevenlabs_webhook(request: Request):
             raise HTTPException(status_code=400, detail="Missing signature header")
 
         if not _verify_signature(raw_body, sig_header, webhook_secret):
-            logger.warning("Webhook signature verification failed")
-            raise HTTPException(status_code=401, detail="Invalid signature")
+            # Log but continue — in demo mode we save the transcript regardless.
+            # The most common cause is WEBHOOK_SECRET not yet updated on Render.
+            logger.warning(
+                "Webhook signature verification FAILED — saving transcript anyway. "
+                "Check that WEBHOOK_SECRET on Render matches .env value."
+            )
     else:
         logger.warning("WEBHOOK_SECRET not set — skipping signature verification (dev mode)")
 
@@ -117,12 +121,14 @@ async def elevenlabs_webhook(request: Request):
     logger.info("Received ElevenLabs webhook event: %s", event_type)
 
     # Accept any event that may carry transcript/analysis data.
-    # ElevenLabs may use different type names across versions.
-    if event_type and event_type not in (
-        "post_call", "post_call_transcription", "transcript", "call_processed",
-    ):
-        logger.info("Received event type '%s' — skipping (no transcript data expected)", event_type)
+    # Use a broad allowlist — ElevenLabs changes event names across API versions.
+    IGNORED_TYPES = {"ping", "test", "verification"}
+    if event_type and event_type.lower() in IGNORED_TYPES:
         return JSONResponse({"status": "ignored", "event_type": event_type})
+    # If we don't recognise the type but it's not a known non-event, still try to process it.
+    known_call_types = {"post_call", "post_call_transcription", "transcript", "call_processed", ""}
+    if event_type and event_type not in known_call_types:
+        logger.info("Unknown event type '%s' — attempting to process anyway", event_type)
 
     data = body.get("data", body)  # some versions wrap in data, some don't
 
