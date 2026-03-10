@@ -232,3 +232,39 @@ async def health():
     except Exception:
         pass
     return JSONResponse({"status": "ok", "service": "demodental-backend", "db": db_ok})
+
+
+@router.get("/api/diagnose")
+async def diagnose():
+    """Quick connectivity check to help diagnose MongoDB Atlas issues."""
+    import socket
+    result: dict = {"render": "ok"}
+
+    # Attempt TCP connect to Atlas shard (no auth — just port reachability)
+    try:
+        sock = socket.create_connection(
+            ("ac-s8bgvae-shard-00-00.4gjj2ps.mongodb.net", 27017), timeout=10
+        )
+        sock.close()
+        result["atlas_tcp"] = "reachable"
+    except Exception as exc:
+        result["atlas_tcp"] = f"unreachable: {exc}"
+
+    # Attempt Motor ping with 15s timeout
+    db_ok = False
+    try:
+        col = conversations_collection()
+        await col.database.command("ping")
+        db_ok = True
+    except Exception as exc:
+        result["mongo_ping_error"] = str(exc)[:120]
+    result["mongo_connected"] = db_ok
+
+    if not result.get("mongo_connected"):
+        result["hint"] = (
+            "MongoDB Atlas cluster appears unreachable. "
+            "Log into https://cloud.mongodb.com and check if your cluster is PAUSED. "
+            "If paused, click 'Resume' to bring it back online."
+        )
+
+    return JSONResponse(result)
