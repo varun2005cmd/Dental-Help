@@ -53,8 +53,8 @@ def _transcript_to_text(transcript_list: list[dict]) -> str:
     """Convert ElevenLabs transcript array to readable plain text."""
     lines = []
     for entry in transcript_list:
-        role = entry.get("role", "unknown").capitalize()
-        message = entry.get("message", "").strip()
+        role = (entry.get("role") or "unknown").capitalize()
+        message = (entry.get("message") or "").strip()
         if message:
             lines.append(f"{role}: {message}")
     return "\n".join(lines) if lines else "(no transcript)"

@@ -103,8 +103,8 @@ async def _do_sync():
             # Build plain-text transcript
             lines = []
             for entry in detail.get("transcript", []):
-                role = entry.get("role", "unknown").capitalize()
-                msg = entry.get("message", "").strip()
+                role = (entry.get("role") or "unknown").capitalize()
+                msg = (entry.get("message") or "").strip()
                 if msg:
                     lines.append(f"{role}: {msg}")
             transcript_text = "\n".join(lines) if lines else "(no transcript)"
