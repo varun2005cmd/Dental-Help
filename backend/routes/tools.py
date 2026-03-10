@@ -7,6 +7,7 @@ Tools configured on the agent:
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -153,14 +154,20 @@ async def book_appointment(payload: BookAppointmentRequest, background_tasks: Ba
         "created_at": datetime.now(timezone.utc),
     }
 
-    # Fire-and-forget DB save — don't block the response on MongoDB
+    # Fire-and-forget DB save with retries — MongoDB Atlas M0 can take ~30s to reconnect
     async def _save_to_db():
-        try:
-            col = appointments_collection()
-            await col.insert_one(doc)
-            logger.info("Appointment %s saved to MongoDB.", appt_id)
-        except Exception as exc:
-            logger.error("Background DB save failed for %s: %s", appt_id, exc)
+        for attempt in range(5):
+            try:
+                col = appointments_collection()
+                await col.insert_one(doc)
+                logger.info("Appointment %s saved to MongoDB (attempt %d).", appt_id, attempt + 1)
+                return
+            except Exception as exc:
+                if attempt < 4:
+                    logger.warning("DB save attempt %d failed, retrying in 15s: %s", attempt + 1, exc)
+                    await asyncio.sleep(15)
+                else:
+                    logger.error("All 5 DB save attempts failed for %s: %s", appt_id, exc)
 
     background_tasks.add_task(_save_to_db)
 
