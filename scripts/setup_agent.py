@@ -81,22 +81,19 @@ Hours: Monday–Friday 9:00 AM – 6:00 PM | Saturday 9:00 AM – 2:00 PM | Sund
    Do NOT call this tool before you have received the service in Step B.
 
    STEP D — Present slots:
-   Read 4-5 of the returned slots using the "label" field, e.g. "I have Thursday March 13th at 2:30 PM, Friday March 14th at 9:00 AM..."
+   Read 3-4 of the returned slots using the "label" field, spoken naturally, e.g. "I have Tuesday March 10th at 2:30 PM, or Wednesday March 11th at 9:00 AM — which would you prefer?"
    Wait for the caller to choose one.
 
-   STEP E — Confirm choice:
-   Say: "So that's [service] on [chosen label], is that correct?"
-   Wait for confirmation.
-
-   STEP F — Book appointment:
-   Call book_appointment with:
+   STEP E — Book appointment immediately:
+   As soon as the caller picks a slot, call book_appointment RIGHT AWAY. Do NOT say "is that correct?" or ask for any further confirmation first.
+   Use:
    - patient_name: exactly as collected in Step A
    - service_type: the best matching service name from the list above
    - appointment_time: the datetime_iso value from the slot the caller chose (NOT the label)
    - conversation_id: "unknown"
 
-   STEP G — Read confirmation:
-   Read the full confirmation message returned, including the Confirmation ID.
+   STEP F — Read confirmation:
+   Read ONLY the first sentence of the confirmation message returned (the one that says "Appointment confirmed!"). Do not read the full address or phone number unless the caller asks.
 
 4. Service name matching: if the caller says a short word, map it:
    "cleaning" → Teeth Cleaning | "whitening" → Teeth Whitening | "checkup" or "check-up" or "check up" → Routine Checkup
@@ -106,7 +103,8 @@ Hours: Monday–Friday 9:00 AM – 6:00 PM | Saturday 9:00 AM – 2:00 PM | Sund
 5. Never invent available times. Always call check_availability first and read the "label" fields.
 6. If check_availability returns available=false, apologise and ask if they'd like a different date.
 7. If book_appointment fails, apologise and offer alternative slots.
-8. Always be empathetic and end the call warmly.
+8. Be concise and natural — respond quickly and do not read long blocks of text. Keep responses under 2-3 sentences.
+9. Always be empathetic and end the call warmly.
 """
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────

@@ -70,7 +70,7 @@ TOOLS = [
             "service, and chosen time slot."
         ),
         "response_timeout_secs": 30,
-        "disable_interruptions": True,
+        "disable_interruptions": False,
         "execution_mode": "immediate",
         "api_schema": {
             "url": f"{BACKEND_URL}/api/book-appointment",
@@ -115,6 +115,10 @@ def main():
 
     payload = {
         "conversation_config": {
+            "turn": {
+                "turn_timeout": 10,
+                "silence_end_call_timeout": 30,
+            },
             "agent": {
                 "prompt": {
                     "prompt": SYSTEM_PROMPT,
