@@ -19,10 +19,10 @@ def _get_client() -> AsyncIOMotorClient:
         uri = os.environ["MONGODB_URI"]
         _client = AsyncIOMotorClient(
             uri,
-            # Fail fast if Atlas is slow — don't hang for 30s
-            serverSelectionTimeoutMS=15000,
-            connectTimeoutMS=15000,
-            socketTimeoutMS=20000,
+            # Wait long enough for Atlas M0 to wake from idle (~30s reconnect time)
+            serverSelectionTimeoutMS=35000,
+            connectTimeoutMS=35000,
+            socketTimeoutMS=40000,
             # Keep the connection alive with regular heartbeats
             heartbeatFrequencyMS=10000,
         )

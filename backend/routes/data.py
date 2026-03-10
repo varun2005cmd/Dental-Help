@@ -122,14 +122,18 @@ async def sync_conversations():
     return JSONResponse({"synced": synced, "skipped": skipped, "errors": errors})
 
 
-
+@router.get("/api/conversations")
+async def get_conversations(limit: int = 50):
     """Return the most recent conversations, newest first."""
-    col = conversations_collection()
-    cursor = col.find({}).sort("created_at", -1).limit(limit)
-    results = []
-    async for doc in cursor:
-        results.append(_stringify_doc(doc))
-    return JSONResponse({"conversations": results, "count": len(results)})
+    try:
+        col = conversations_collection()
+        cursor = col.find({}).sort("created_at", -1).limit(limit)
+        results = []
+        async for doc in cursor:
+            results.append(_stringify_doc(doc))
+        return JSONResponse({"conversations": results, "count": len(results)})
+    except Exception:
+        return JSONResponse({"conversations": [], "count": 0})
 
 
 @router.api_route("/api/conversations/{conv_id}/audio", methods=["GET", "HEAD"])
@@ -159,12 +163,15 @@ async def get_conversation_audio(conv_id: str, request: Request):
 @router.get("/api/appointments")
 async def get_appointments(limit: int = 50):
     """Return the most recent appointments, newest first."""
-    col = appointments_collection()
-    cursor = col.find({}).sort("created_at", -1).limit(limit)
-    results = []
-    async for doc in cursor:
-        results.append(_stringify_doc(doc))
-    return JSONResponse({"appointments": results, "count": len(results)})
+    try:
+        col = appointments_collection()
+        cursor = col.find({}).sort("created_at", -1).limit(limit)
+        results = []
+        async for doc in cursor:
+            results.append(_stringify_doc(doc))
+        return JSONResponse({"appointments": results, "count": len(results)})
+    except Exception:
+        return JSONResponse({"appointments": [], "count": 0})
 
 
 @router.delete("/api/appointments/{appt_id}")
