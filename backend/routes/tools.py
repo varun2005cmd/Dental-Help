@@ -97,11 +97,15 @@ async def book_appointment(payload: BookAppointmentRequest):
             },
         )
 
-    # Check if slot is already taken
-    existing = await appointments_col.find_one({
-        "appointment_time": appt_dt,
-        "status": "confirmed",
-    })
+    # Check if slot is already taken (skip if DB is unreachable)
+    try:
+        existing = await appointments_col.find_one({
+            "appointment_time": appt_dt,
+            "status": "confirmed",
+        })
+    except Exception as exc:
+        logger.warning("DB find_one failed (skipping duplicate check): %s", exc)
+        existing = None
     if existing:
         return JSONResponse(
             status_code=200,

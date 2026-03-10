@@ -32,6 +32,14 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("BrightSmile Dental backend starting…")
+    # Pre-warm MongoDB so the first API call doesn't hit a cold connection
+    try:
+        from backend.database import get_db
+        db = get_db()
+        await db.command("ping")
+        logger.info("MongoDB connection pre-warmed on startup.")
+    except Exception as exc:
+        logger.warning("MongoDB startup ping failed (will retry on first use): %s", exc)
     yield
     await close_db()
     logger.info("BrightSmile Dental backend shut down.")
