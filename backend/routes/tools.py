@@ -156,18 +156,20 @@ async def book_appointment(payload: BookAppointmentRequest, background_tasks: Ba
 
     # Fire-and-forget DB save with retries — MongoDB Atlas M0 can take ~30s to reconnect
     async def _save_to_db():
-        for attempt in range(5):
+        delays = [5, 15, 30, 60]  # increasing delays between retry attempts
+        for attempt, delay in enumerate([0] + delays):
+            if delay:
+                await asyncio.sleep(delay)
             try:
                 col = appointments_collection()
                 await col.insert_one(doc)
                 logger.info("Appointment %s saved to MongoDB (attempt %d).", appt_id, attempt + 1)
                 return
             except Exception as exc:
-                if attempt < 4:
-                    logger.warning("DB save attempt %d failed, retrying in 15s: %s", attempt + 1, exc)
-                    await asyncio.sleep(15)
+                if attempt < len(delays):
+                    logger.warning("DB save attempt %d failed, retrying: %s", attempt + 1, exc)
                 else:
-                    logger.error("All 5 DB save attempts failed for %s: %s", appt_id, exc)
+                    logger.error("All DB save attempts failed for %s: %s", appt_id, exc)
 
     background_tasks.add_task(_save_to_db)
 
